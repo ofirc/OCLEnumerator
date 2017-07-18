@@ -71,11 +71,9 @@ bool EnumDisplay(void)
     int ret;
     bool foundOpenCLKey = false;
     wchar_t buffer[4096] = { 0 };
-    DEVPROPKEY devpropkey[128] = { 0 };
     wchar_t *fullHkr = NULL;
 
     ULONG szBuffer = sizeof(buffer);
-    ULONG szDevpropkeycount = sizeof(devpropkey) / sizeof(devpropkey[0]);
     DEVINST devinst = 0;
     DEVINST devchild = 0;
     static const wchar_t* DISPLAY_ADAPTER_GUID =
@@ -101,6 +99,15 @@ bool EnumDisplay(void)
     {
         wprintf_s(L"devinst: %d\n", devinst);
     }
+
+    wprintf_s(L"Trying to look for the keys in the display adapter hive...\n");
+    if (ReadOpenCLKey(devinst))
+    {
+        wprintf_s(L"Found the key, we are done...");
+        return true;
+    }
+
+    wprintf_s(L"Could not find the key, proceeding to children software components...\n");
 
     if (CM_Get_Child(&devchild, devinst, 0) == CR_SUCCESS)
     {
