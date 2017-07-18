@@ -9,85 +9,60 @@ extern const wchar_t OPENCL_REG_SUB_KEY[];
 
 static const wchar_t HKR_PREFIX[] = L"SYSTEM\\CurrentControlSet\\Control\\Class\\";
 
-// Given a display adapter HKR entry (GUID\000x), returns the full registry path
-// to that adapter (i.e. SYSTEM\...\Class\GUID\000x).
-static wchar_t* GetFullHKRPath(const wchar_t* hkr)
+static bool ReadOpenCLKey(DEVINST dnDevNode)
 {
-    wchar_t* wcszHkrFullPath;
-    size_t szHkrFullPath;
-    //errno_t ret;
-
-    szHkrFullPath = 4096;
-    wcszHkrFullPath = malloc(szHkrFullPath);
-    if (!wcszHkrFullPath)
-    {
-        OCL_ENUM_TRACE("failed to allocate memory\n");
-        return NULL;
-    }
-
-    RtlZeroMemory(wcszHkrFullPath, szHkrFullPath);
-
-    swprintf(wcszHkrFullPath, szHkrFullPath, L"%ls%ls", HKR_PREFIX, hkr);
-
-    return wcszHkrFullPath;
-}
-
-static bool FindOpenCLKey(const wchar_t* fullHkr)
-{
-    LSTATUS result;
-    HKEY hkrKey = NULL;
-    bool ret = false;
+    HKEY hkey = 0;
+    DWORD ret;
+    bool bRet = false;
     DWORD dwLibraryNameType = 0;
     wchar_t wcszOclPath[MAX_PATH] = { '\0' };
     DWORD dwOclPathSize = sizeof(wcszOclPath);
+    LSTATUS result;
 
-    result = RegOpenKeyEx(
-        HKEY_LOCAL_MACHINE,
-        fullHkr,
+    ret = CM_Open_DevNode_Key(
+        dnDevNode,
+        KEY_QUERY_VALUE,
         0,
-        KEY_READ,
-        &hkrKey);
-    if (ERROR_SUCCESS != result)
+        RegDisposition_OpenExisting,
+        &hkey,
+        CM_REGISTRY_SOFTWARE);
+
+    if (ret == CR_SUCCESS)
     {
-        OCL_ENUM_TRACE("Failed to open HKR key\n");
-        goto out;
-    }
-
-    result = RegQueryValueEx(
-        hkrKey,
-        OPENCL_REG_SUB_KEY,
-        NULL,
-        &dwLibraryNameType,
-        (LPBYTE)wcszOclPath,
-        &dwOclPathSize);
-    if (ERROR_SUCCESS != result)
-    {
-        OCL_ENUM_TRACE("Failed to open sub key\n");
-        goto out;
-    }
-
-    if (REG_MULTI_SZ != dwLibraryNameType)
-    {
-        OCL_ENUM_TRACE("Unexpected registry entry! continuing\n");
-        goto out;
-    }
-
-    wprintf_s(L"Path: %ls\n", wcszOclPath);
-
-    ret = true;
-
-out:
-    if (hkrKey)
-    {
-        result = RegCloseKey(hkrKey);
+        result = RegQueryValueEx(
+            hkey,
+            OPENCL_REG_SUB_KEY,
+            NULL,
+            &dwLibraryNameType,
+            (LPBYTE)wcszOclPath,
+            &dwOclPathSize);
         if (ERROR_SUCCESS != result)
         {
-            OCL_ENUM_TRACE("Failed to close hkr key\n");
+            OCL_ENUM_TRACE("Failed to open sub key\n");
+            goto out;
         }
+
+        if (REG_MULTI_SZ != dwLibraryNameType)
+        {
+            OCL_ENUM_TRACE("Unexpected registry entry! continuing\n");
+            goto out;
+        }
+
+        wprintf_s(L"Path: %ls\n", wcszOclPath);
+
+        ret = true;
+
+    }
+
+out:
+    if (hkey)
+    {
+        RegCloseKey(hkey);
     }
 
     return ret;
 }
+
 
 // Tries to look for the OpenCL key under the display devices and
 // if not found, fall back to software component devices.
@@ -139,30 +114,9 @@ bool EnumDisplay(void)
                 wprintf_s(L"deviceInstanceID: %ls\n", deviceInstanceID);
             }
 
-            ret = CM_Get_DevNode_Property_Keys(devchild, devpropkey, &szDevpropkeycount, 0);
-            if (ret == CR_SUCCESS)
+            if (!foundOpenCLKey)
             {
-                ULONG reg_data_type = 0;
-                ULONG reg_type = 0;
-                wchar_t hkr[4096] = { 0 };
-                ULONG szHkr = sizeof(hkr);
-
-                ret = CM_Get_DevNode_Registry_Property(
-                    devchild,
-                    CM_DRP_DRIVER,
-                    &reg_data_type,
-                    hkr,
-                    &szHkr,
-                    0);
-
-                if (ret == CR_SUCCESS && !foundOpenCLKey)
-                {
-                    wprintf_s(L"HKR: %ls\n", hkr);
-                    fullHkr = GetFullHKRPath(hkr);
-                    wprintf_s(L"Full HKR: %ls\n", fullHkr);
-                    foundOpenCLKey = FindOpenCLKey(fullHkr);
-                    free(fullHkr);
-                }
+                foundOpenCLKey = ReadOpenCLKey(devchild);
             }
         } while (CM_Get_Sibling(&devchild, devchild, 0) == CR_SUCCESS);
     }
