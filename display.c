@@ -51,7 +51,6 @@ static bool ReadOpenCLKey(DEVINST dnDevNode)
         wprintf_s(L"Path: %ls\n", wcszOclPath);
 
         ret = true;
-
     }
 
 out:
@@ -113,10 +112,10 @@ bool EnumDisplay(void)
     {
         do
         {
-            wchar_t deviceInstanceID[MAX_PATH] = { 0 };
+            wchar_t deviceInstanceID[MAX_DEVICE_ID_LEN] = { 0 };
 
             wprintf_s(L"devchild: %d\n", devchild);
-            if (CM_Get_Device_ID(devchild, deviceInstanceID, MAX_PATH, 0) == CR_SUCCESS)
+            if (CM_Get_Device_ID(devchild, deviceInstanceID, sizeof(deviceInstanceID), 0) == CR_SUCCESS)
             {
                 wprintf_s(L"deviceInstanceID: %ls\n", deviceInstanceID);
             }
