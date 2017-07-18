@@ -148,7 +148,6 @@
   <ItemGroup>
     <ClCompile Include="display.c" />
     <ClCompile Include="main.c" />
-    <ClCompile Include="registry.c" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="modes.h" />

@@ -1,17 +1,14 @@
 /*
- OpenCL ICDs enumeration using Universal (CM_*) or the Windows Registry APIs.
+ OpenCL ICDs enumeration using the Universal API (CM_*).
 
- Launch modes:
- 1. OCLEnumerator.exe --display
+ Launch with no arguments:
+ OCLEnumerator.exe
 
-    Starts from Display Adapters and then uses CM_Get_Child/Sibling to find any
-    software component children.
+ It will enumerate all Display Adapters nodes, search for OpenCLDriverName[Wow]
+ registry value under their HKR and if not found - it will use CM_Get_Child/Sibling
+ to find software component children which might contain the key.
 
- 2. OCLEnumerator.exe --registry
-
-    Enumerates device keys by looking under:
-    HKLM\SYSTEM\CurrentControlSet\Control\Class\{5c4c3332-344d-483c-8739-259e934c9cc8}\*\OpenCLDriverName[Wow]
-
+ Background:
  Starting from Windows 10 RS3+, graphics drivers components have dedicated
  component INF files and are referenced via the INF AddComponent directive.
  Every such component, e.g. OpenCL instance (ICD), is assigned a unique device
@@ -30,64 +27,19 @@
  https://docs.microsoft.com/en-us/windows-hardware/drivers/install/adding-software-components-with-an-inf-file
 
 */
-#include "modes.h"
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
 
-typedef enum
-{
-    Display,
-    Registry
-} Mode;
-
-#ifdef _WIN64
-const wchar_t OPENCL_REG_SUB_KEY[] = L"OpenCLDriverName";
-#else
-const wchar_t OPENCL_REG_SUB_KEY[] = L"OpenCLDriverNameWow";
-#endif
-
-static void usage(char *prog_name)
-{
-    printf("Usage: %s [--display | --registry]\n", prog_name);
-    printf("If no mode is given, --display is assumed to be the default.\n");
-    exit(EXIT_FAILURE);
-}
+extern bool EnumDisplay(void);
 
 int main(int argc, char** argv)
 {
-    Mode mode = Display;
     bool res = false;
 
-    if (argc > 2)
-        usage(argv[0]);
-
-    if (argc == 2)
-    {
-        if (strcmp(argv[1], "--display") == 0)
-            mode = Display;
-        else if (strcmp(argv[1], "--registry") == 0)
-            mode = Registry;
-        else
-        {
-            fprintf(stderr, "error: invalid usage mode %s.\n", argv[1]);
-            usage(argv[0]);
-        }
-    }
-
-    switch (mode)
-    {
-    case Display:
-        res = EnumDisplay();
-        break;
-    case Registry:
-        res = EnumRegistry();
-        break;
-    default:
-        assert(0);
-    }
+    res = EnumDisplay();
 
     printf("%s OpenCL ICD key\n", res ? "Found" : "Could not find");
 

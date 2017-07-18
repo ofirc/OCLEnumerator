@@ -16,7 +16,7 @@
     { \
         if (!(x)) \
         { \
-            _ftprintf(stderr, TEXT("OCL ENUM assert at %s:%d: %s failed"), __FILE__, __LINE__, #x); \
+            fprintf(stderr, "OCL ENUM assert at %s:%d: %s failed", __FILE__, __LINE__, #x); \
         } \
     } while (0)
 #else

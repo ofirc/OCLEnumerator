@@ -1,12 +1,16 @@
 #include "shared.h"
-#include "modes.h"
 #include <windows.h>
 #include <cfgmgr32.h>
 #include <assert.h>
+#include <stdbool.h>
 
 #pragma comment(lib, "Cfgmgr32.lib")
 
-extern const wchar_t OPENCL_REG_SUB_KEY[];
+#ifdef _WIN64
+const wchar_t OPENCL_REG_SUB_KEY[] = L"OpenCLDriverName";
+#else
+const wchar_t OPENCL_REG_SUB_KEY[] = L"OpenCLDriverNameWow";
+#endif
 
 static bool ReadOpenCLKey(DEVINST dnDevNode)
 {
@@ -55,7 +59,11 @@ static bool ReadOpenCLKey(DEVINST dnDevNode)
 out:
     if (hkey)
     {
-        RegCloseKey(hkey);
+        result = RegCloseKey(hkey);
+        if (ERROR_SUCCESS != result)
+        {
+            OCL_ENUM_TRACE(TEXT("WARNING: failed to close hkey\n"));
+        }
     }
 
     return bRet;
@@ -93,9 +101,15 @@ bool EnumDisplay(void)
 
     wprintf_s(L"%ls\n", buffer);
 
-    if (CM_Locate_DevNode(&devinst, buffer, 0) == CR_SUCCESS)
+    ret = CM_Locate_DevNode(&devinst, buffer, 0);
+    if (ret == CR_SUCCESS)
     {
         wprintf_s(L"devinst: %d\n", devinst);
+    }
+    else
+    {
+        OCL_ENUM_TRACE(TEXT("CM_Locate_DevNode failed with 0x%x\n"), ret);
+        return false;
     }
 
     wprintf_s(L"Trying to look for the keys in the display adapter hive...\n");
