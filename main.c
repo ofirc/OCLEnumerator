@@ -35,12 +35,11 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <assert.h>
 
 typedef enum
 {
     Display,
-    SoftwareComponents,
-    CmRegistrySoftware,
     Registry
 } Mode;
 
@@ -52,8 +51,8 @@ const wchar_t OPENCL_REG_SUB_KEY[] = L"OpenCLDriverNameWow";
 
 static void usage(char *prog_name)
 {
-    printf("Usage: %s [--display | --software-components | --cm-registry-software | --registry]\n", prog_name);
-    printf("If no mode is given, --display is the selected mode.\n");
+    printf("Usage: %s [--display | --registry]\n", prog_name);
+    printf("If no mode is given, --display is assumed to be the default.\n");
     exit(EXIT_FAILURE);
 }
 
@@ -69,10 +68,6 @@ int main(int argc, char** argv)
     {
         if (strcmp(argv[1], "--display") == 0)
             mode = Display;
-        else if (strcmp(argv[1], "--software-components") == 0)
-            mode = SoftwareComponents;
-        else if (strcmp(argv[1], "--cm-registry-software") == 0)
-            mode = CmRegistrySoftware;
         else if (strcmp(argv[1], "--registry") == 0)
             mode = Registry;
         else
@@ -91,8 +86,7 @@ int main(int argc, char** argv)
         res = EnumRegistry();
         break;
     default:
-        fprintf(stderr, "error: mode %s is not supported.", argv[1]);
-        exit(EXIT_FAILURE);
+        assert(0);
     }
 
     printf("%s OpenCL ICD key\n", res ? "Found" : "Could not find");

@@ -2,12 +2,11 @@
 #include "modes.h"
 #include <windows.h>
 #include <cfgmgr32.h>
+#include <assert.h>
 
 #pragma comment(lib, "Cfgmgr32.lib")
 
 extern const wchar_t OPENCL_REG_SUB_KEY[];
-
-static const wchar_t HKR_PREFIX[] = L"SYSTEM\\CurrentControlSet\\Control\\Class\\";
 
 static bool ReadOpenCLKey(DEVINST dnDevNode)
 {
@@ -38,19 +37,19 @@ static bool ReadOpenCLKey(DEVINST dnDevNode)
             &dwOclPathSize);
         if (ERROR_SUCCESS != result)
         {
-            OCL_ENUM_TRACE("Failed to open sub key\n");
+            OCL_ENUM_TRACE(TEXT("Failed to open sub key\n"));
             goto out;
         }
 
         if (REG_MULTI_SZ != dwLibraryNameType)
         {
-            OCL_ENUM_TRACE("Unexpected registry entry! continuing\n");
+            OCL_ENUM_TRACE(TEXT("Unexpected registry entry! continuing\n"));
             goto out;
         }
 
         wprintf_s(L"Path: %ls\n", wcszOclPath);
 
-        ret = true;
+        bRet = true;
     }
 
 out:
@@ -59,7 +58,7 @@ out:
         RegCloseKey(hkey);
     }
 
-    return ret;
+    return bRet;
 }
 
 
@@ -88,7 +87,7 @@ bool EnumDisplay(void)
 
     if (ret != CR_SUCCESS)
     {
-        OCL_ENUM_TRACE("CM_Get_Device_ID_List failed with 0x%x\n", ret);
+        OCL_ENUM_TRACE(TEXT("CM_Get_Device_ID_List failed with 0x%x\n"), ret);
         return false;
     }
 
