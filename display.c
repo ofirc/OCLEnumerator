@@ -9,9 +9,7 @@
 
 // This GUID was only added to devguid.h on Windows SDK v10.0.16232 which
 // corresponds to Windows 10 Redstone 3 (Windows 10 Fall Creators Update).
-#ifndef GUID_DEVCLASS_SOFTWARECOMPONENT
-DEFINE_GUID(GUID_DEVCLASS_SOFTWARECOMPONENT, 0x5c4c3332, 0x344d, 0x483c, 0x87, 0x39, 0x25, 0x9e, 0x93, 0x4c, 0x9c, 0xc8);
-#endif
+DEFINE_GUID(OCL_GUID_DEVCLASS_SOFTWARECOMPONENT, 0x5c4c3332, 0x344d, 0x483c, 0x87, 0x39, 0x25, 0x9e, 0x93, 0x4c, 0x9c, 0xc8);
 
 #pragma comment(lib, "Cfgmgr32.lib")
 
@@ -267,7 +265,7 @@ bool EnumDisplay(void)
                 OCL_ENUM_ASSERT(devpropType == DEVPROP_TYPE_GUID);
 
                 if (CR_SUCCESS != ret ||
-                    !IsEqualGUID(&GUID_DEVCLASS_SOFTWARECOMPONENT, &guid))
+                    !IsEqualGUID(&OCL_GUID_DEVCLASS_SOFTWARECOMPONENT, &guid))
                 {
                     continue;
                 }
