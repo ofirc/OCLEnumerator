@@ -30,8 +30,6 @@
 #include <stdlib.h>
 #include <stdbool.h>
 #include <stdio.h>
-#include <string.h>
-#include <assert.h>
 
 extern bool EnumDisplay(void);
 
