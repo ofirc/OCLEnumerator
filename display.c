@@ -5,8 +5,13 @@
 #include <stdbool.h>
 #include <initguid.h>
 #include <Devpkey.h>
+#include <devguid.h>
 
-DEFINE_GUID(GUID_SOFTWARE_COMPONENT, 0x5c4c3332, 0x344d, 0x483c, 0x87, 0x39, 0x25, 0x9e, 0x93, 0x4c, 0x9c, 0xc8);
+// This GUID was only added to devguid.h on Windows SDK v10.0.16232 which
+// corresponds to Windows 10 Redstone 3 (Windows 10 Fall Creators Update).
+#ifndef GUID_DEVCLASS_SOFTWARECOMPONENT
+DEFINE_GUID(GUID_DEVCLASS_SOFTWARECOMPONENT, 0x5c4c3332, 0x344d, 0x483c, 0x87, 0x39, 0x25, 0x9e, 0x93, 0x4c, 0x9c, 0xc8);
+#endif
 
 #pragma comment(lib, "Cfgmgr32.lib")
 
@@ -122,7 +127,19 @@ static DeviceProbeResult ProbeDevice(DEVINST devnode)
         return ProbeFailure;
     }
 
-    if ((ulStatus & DN_HAS_PROBLEM) && ulProblem == CM_PROB_NEED_RESTART)
+    //
+    // Careful here, we need to check 2 scenarios:
+    // 1. DN_NEED_RESTART
+    //    status flag indicates that a reboot is needed when an _already started_
+    //    device cannot be stopped. This covers devices that are still started with their
+    //    old KMD (because they couldn't be stopped/restarted) while the UMD is updated
+    //    and possibly out of sync.
+    //
+    // 2.  Status & DN_HAS_PROBLEM  && Problem == CM_PROB_NEED_RESTART
+    //     indicates that a reboot is needed when a _stopped device_ cannot be (re)started.
+    //
+    if (((ulStatus & DN_HAS_PROBLEM) && ulProblem == CM_PROB_NEED_RESTART) ||
+          ulStatus & DN_NEED_RESTART)
     {
         wprintf_s(L"    WARNING: device is pending reboot, skipping...");
         return PendingReboot;
@@ -132,7 +149,7 @@ static DeviceProbeResult ProbeDevice(DEVINST devnode)
 }
 
 // Tries to look for the OpenCL key under the display devices and
-// if not found, fall back to software component devices.
+// if not found, falls back to software component devices.
 bool EnumDisplay(void)
 {
     CONFIGRET ret;
@@ -141,42 +158,57 @@ bool EnumDisplay(void)
     DEVINST devchild = 0;
     wchar_t *deviceIdList = NULL;
     ULONG szBuffer = 0;
+
+    // TODO: can we use StringFromGUID2(GUID_DEVCLASS_DISPLAY) instead of
+    //       hardcoding the value here?
     static const wchar_t* DISPLAY_ADAPTER_GUID =
         L"{4d36e968-e325-11ce-bfc1-08002be10318}";
     ULONG ulFlags = CM_GETIDLIST_FILTER_CLASS |
                     CM_GETIDLIST_FILTER_PRESENT;
 
-    ret = CM_Get_Device_ID_List_Size(
-        &szBuffer,
-        DISPLAY_ADAPTER_GUID,
-        ulFlags);
-
-    if (CR_SUCCESS != ret)
+    // Paranoia: we might have a new device added to the list between the call
+    // to CM_Get_Device_ID_List_Size() and the call to CM_Get_Device_ID_List().
+    do
     {
-        OCL_ENUM_TRACE(TEXT("CM_Get_Device_ID_List_size failed with 0x%x\n"), ret);
-        goto out;
-    }
+        ret = CM_Get_Device_ID_List_Size(
+            &szBuffer,
+            DISPLAY_ADAPTER_GUID,
+            ulFlags);
 
-    // "pulLen [out] Receives a value representing the required buffer
-    //  size, in characters."
-    szBuffer *= sizeof(TCHAR);
+        if (CR_SUCCESS != ret)
+        {
+            OCL_ENUM_TRACE(TEXT("CM_Get_Device_ID_List_size failed with 0x%x\n"), ret);
+            break;
+        }
 
-    deviceIdList = malloc(szBuffer);
+        // "pulLen [out] Receives a value representing the required buffer
+        //  size, in characters."
+        //  So we need to allocate the right size in bytes but we still need
+        //  to keep szBuffer as it was returned from CM_Get_Device_ID_List_Size so
+        //  the call to CM_Get_Device_ID_List will receive the correct size.
+        deviceIdList = malloc(szBuffer * sizeof(wchar_t));
+        if (NULL == deviceIdList)
+        {
+            OCL_ENUM_TRACE(TEXT("Failed to allocate %u bytes for device ID strings\n"), szBuffer);
+            break;
+        }
+
+        ret = CM_Get_Device_ID_List(
+            DISPLAY_ADAPTER_GUID,
+            deviceIdList,
+            szBuffer,
+            ulFlags);
+
+        if (CR_SUCCESS != ret)
+        {
+            OCL_ENUM_TRACE(TEXT("CM_Get_Device_ID_List failed with 0x%x\n"), ret);
+            free(deviceIdList);
+            deviceIdList = NULL;
+        }
+    } while (CR_BUFFER_SMALL == ret);
+
     if (NULL == deviceIdList)
     {
-        OCL_ENUM_TRACE(TEXT("Failed to allocate %u bytes for device ID strings\n"), szBuffer);
-        goto out;
-    }
-
-    ret = CM_Get_Device_ID_List(
-        DISPLAY_ADAPTER_GUID,
-        deviceIdList,
-        szBuffer,
-        ulFlags);
-
-    if (CR_SUCCESS != ret)
-    {
-        OCL_ENUM_TRACE(TEXT("CM_Get_Device_ID_List failed with 0x%x\n"), ret);
         goto out;
     }
 
@@ -214,7 +246,7 @@ bool EnumDisplay(void)
         {
             do
             {
-                wchar_t deviceInstanceID[4096] = { 0 };
+                wchar_t deviceInstanceID[MAX_DEVICE_ID_LEN] = { 0 };
                 GUID guid;
                 ULONG szGuid = sizeof(guid);
 
@@ -235,7 +267,7 @@ bool EnumDisplay(void)
                 OCL_ENUM_ASSERT(devpropType == DEVPROP_TYPE_GUID);
 
                 if (CR_SUCCESS != ret ||
-                    !IsEqualGUID(&GUID_SOFTWARE_COMPONENT, &guid))
+                    !IsEqualGUID(&GUID_DEVCLASS_SOFTWARECOMPONENT, &guid))
                 {
                     continue;
                 }

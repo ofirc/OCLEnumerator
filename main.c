@@ -1,5 +1,5 @@
 /*
- OpenCL ICDs enumeration using the Universal API (CM_*).
+ OpenCL ICDs enumeration using the Universal APIs (CM_*).
 
  Launch with no arguments:
  OCLEnumerator.exe
@@ -10,7 +10,8 @@
 
  Background:
  Starting from Windows 10 RS3+, graphics drivers components have dedicated
- component INF files and are referenced via the INF AddComponent directive.
+ component INF files and are referenced via the CopyINF directive and/or (optional)
+ INF AddComponent directive.
  Every such component, e.g. OpenCL instance (ICD), is assigned a unique device
  instance ID (e.g. 0000, 0001, etc) under the reg key above and use it to store
  the path to its ICD.
@@ -33,7 +34,7 @@
 
 extern bool EnumDisplay(void);
 
-int main(int argc, char** argv)
+int main(void)
 {
     bool res = false;
 
