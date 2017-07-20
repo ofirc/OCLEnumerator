@@ -240,7 +240,16 @@ bool EnumDisplay(void)
 
         wprintf_s(L"    Could not find the key, proceeding to children software components...\n");
 
-        if (CM_Get_Child(&devchild, devinst, 0) == CR_SUCCESS)
+        ret = CM_Get_Child(
+            &devchild,
+            devinst,
+            0);
+
+        if (CR_SUCCESS != ret)
+        {
+            wprintf_s(L"    CM_Get_Child returned 0x%x, skipping children...\n", ret);
+        }
+        else
         {
             do
             {
