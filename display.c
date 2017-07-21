@@ -11,8 +11,6 @@
 // corresponds to Windows 10 Redstone 3 (Windows 10 Fall Creators Update).
 DEFINE_GUID(OCL_GUID_DEVCLASS_SOFTWARECOMPONENT, 0x5c4c3332, 0x344d, 0x483c, 0x87, 0x39, 0x25, 0x9e, 0x93, 0x4c, 0x9c, 0xc8);
 
-#pragma comment(lib, "Cfgmgr32.lib")
-
 typedef enum
 {
     ProbeFailure,
