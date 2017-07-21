@@ -151,18 +151,27 @@ static DeviceProbeResult ProbeDevice(DEVINST devnode)
 bool EnumDisplay(void)
 {
     CONFIGRET ret;
+    int iret;
     bool foundOpenCLKey = false;
     DEVINST devinst = 0;
     DEVINST devchild = 0;
     wchar_t *deviceIdList = NULL;
     ULONG szBuffer = 0;
 
-    // TODO: can we use StringFromGUID2(GUID_DEVCLASS_DISPLAY) instead of
-    //       hardcoding the value here?
-    static const wchar_t* DISPLAY_ADAPTER_GUID =
-        L"{4d36e968-e325-11ce-bfc1-08002be10318}";
+    OLECHAR display_adapter_guid_str[MAX_GUID_STRING_LEN];
     ULONG ulFlags = CM_GETIDLIST_FILTER_CLASS |
                     CM_GETIDLIST_FILTER_PRESENT;
+
+    iret = StringFromGUID2(
+        &GUID_DEVCLASS_DISPLAY,
+        display_adapter_guid_str,
+        MAX_GUID_STRING_LEN);
+
+    if (MAX_GUID_STRING_LEN != iret)
+    {
+        OCL_ENUM_TRACE(TEXT("StringFromGUID2 failed with %d\n"), iret);
+        goto out;
+    }
 
     // Paranoia: we might have a new device added to the list between the call
     // to CM_Get_Device_ID_List_Size() and the call to CM_Get_Device_ID_List().
@@ -170,7 +179,7 @@ bool EnumDisplay(void)
     {
         ret = CM_Get_Device_ID_List_Size(
             &szBuffer,
-            DISPLAY_ADAPTER_GUID,
+            display_adapter_guid_str,
             ulFlags);
 
         if (CR_SUCCESS != ret)
@@ -192,7 +201,7 @@ bool EnumDisplay(void)
         }
 
         ret = CM_Get_Device_ID_List(
-            DISPLAY_ADAPTER_GUID,
+            display_adapter_guid_str,
             deviceIdList,
             szBuffer,
             ulFlags);
