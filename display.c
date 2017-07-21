@@ -270,7 +270,17 @@ bool EnumDisplay(void)
                 ULONG szGuid = sizeof(guid);
 
                 wprintf_s(L"    devchild: %d\n", devchild);
-                if (CM_Get_Device_ID(devchild, deviceInstanceID, sizeof(deviceInstanceID), 0) == CR_SUCCESS)
+                ret = CM_Get_Device_ID(
+                    devchild,
+                    deviceInstanceID,
+                    sizeof(deviceInstanceID),
+                    0);
+                if (CR_SUCCESS != ret)
+                {
+                    wprintf_s(L"    CM_Get_Device_ID returned 0x%x, skipping device...\n", ret);
+                    continue;
+                }
+                else
                 {
                     wprintf_s(L"    deviceInstanceID: %ls\n", deviceInstanceID);
                 }
