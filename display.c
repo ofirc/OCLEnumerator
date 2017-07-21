@@ -42,7 +42,12 @@ static bool ReadOpenCLKey(DEVINST dnDevNode)
         &hkey,
         CM_REGISTRY_SOFTWARE);
 
-    if (CR_SUCCESS == ret)
+    if (CR_SUCCESS != ret)
+    {
+        OCL_ENUM_TRACE(TEXT("Failed with ret 0x%x\n"), ret);
+        goto out;
+    }
+    else
     {
         result = RegQueryValueEx(
             hkey,
@@ -54,7 +59,7 @@ static bool ReadOpenCLKey(DEVINST dnDevNode)
 
         if (ERROR_SUCCESS != result)
         {
-            OCL_ENUM_TRACE(TEXT("Failed to open sub key\n"));
+            OCL_ENUM_TRACE(TEXT("Failed to open sub key 0x%x\n"), result);
             goto out;
         }
 
@@ -74,13 +79,13 @@ static bool ReadOpenCLKey(DEVINST dnDevNode)
             &dwOclPathSize);
         if (ERROR_SUCCESS != result)
         {
-            OCL_ENUM_TRACE(TEXT("Failed to open sub key\n"));
+            OCL_ENUM_TRACE(TEXT("Failed to open sub key 0x%x\n"), result);
             goto out;
         }
 
         if (REG_MULTI_SZ != dwLibraryNameType)
         {
-            OCL_ENUM_TRACE(TEXT("Unexpected registry entry! continuing\n"));
+            OCL_ENUM_TRACE(TEXT("Unexpected registry entry 0x%x! continuing\n"), dwLibraryNameType);
             goto out;
         }
 
@@ -97,7 +102,7 @@ out:
         result = RegCloseKey(hkey);
         if (ERROR_SUCCESS != result)
         {
-            OCL_ENUM_TRACE(TEXT("WARNING: failed to close hkey\n"));
+            OCL_ENUM_TRACE(TEXT("WARNING: failed to close hkey 0x%x\n"), result);
         }
     }
 
@@ -119,7 +124,7 @@ static DeviceProbeResult ProbeDevice(DEVINST devnode)
     // TODO: consider extracting warning messages out of this function
     if (CR_SUCCESS != ret)
     {
-        wprintf_s(L"    WARNING: failed to probe the status of the device");
+        wprintf_s(L"    WARNING: failed to probe the status of the device 0x%x\n", ret);
         return ProbeFailure;
     }
 
@@ -137,7 +142,7 @@ static DeviceProbeResult ProbeDevice(DEVINST devnode)
     if (((ulStatus & DN_HAS_PROBLEM) && ulProblem == CM_PROB_NEED_RESTART) ||
           ulStatus & DN_NEED_RESTART)
     {
-        wprintf_s(L"    WARNING: device is pending reboot, skipping...");
+        wprintf_s(L"    WARNING: device is pending reboot (0x%x), skipping...\n", ulStatus);
         return PendingReboot;
     }
 
@@ -240,7 +245,7 @@ bool EnumDisplay(void)
         }
 
         wprintf_s(L"    Trying to look for the key in the display adapter HKR...\n");
-        if (foundOpenCLKey = ReadOpenCLKey(devinst))
+        if (foundOpenCLKey |= ReadOpenCLKey(devinst))
         {
             continue;
         }
@@ -291,7 +296,7 @@ bool EnumDisplay(void)
                     continue;
                 }
 
-                if (foundOpenCLKey = ReadOpenCLKey(devchild))
+                if (foundOpenCLKey |= ReadOpenCLKey(devchild))
                 {
                     break;
                 }
