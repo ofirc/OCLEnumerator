@@ -83,7 +83,7 @@ static bool ReadOpenCLKey(DEVINST dnDevNode)
             goto out;
         }
 
-        if (REG_MULTI_SZ != dwLibraryNameType)
+        if (REG_SZ != dwLibraryNameType)
         {
             OCL_ENUM_TRACE(TEXT("Unexpected registry entry 0x%x! continuing\n"), dwLibraryNameType);
             goto out;
