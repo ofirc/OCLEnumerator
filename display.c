@@ -245,8 +245,10 @@ bool EnumDisplay(void)
         }
 
         wprintf_s(L"    Trying to look for the key in the display adapter HKR...\n");
-        if (foundOpenCLKey |= ReadOpenCLKey(devinst))
+
+        if (ReadOpenCLKey(devinst))
         {
+            foundOpenCLKey = true;
             continue;
         }
 
@@ -306,8 +308,9 @@ bool EnumDisplay(void)
                     continue;
                 }
 
-                if (foundOpenCLKey |= ReadOpenCLKey(devchild))
+                if (ReadOpenCLKey(devchild))
                 {
+                    foundOpenCLKey = true;
                     break;
                 }
             } while (CM_Get_Sibling(&devchild, devchild, 0) == CR_SUCCESS);
